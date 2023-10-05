@@ -82,6 +82,41 @@ $ sx kbootd < /dev/ttyUSB0 > /dev/ttyUSB0
 # rx /bin/kbootd
 ```
 
+Debug `kbootd` with `gdbserver`:
+1) Download GDB: https://ftp.gnu.org/gnu/gdb/
+2) Cross-compile GDB for aarch64:
+``` console
+$ export PATH="${TOOLCHAINS_PATH}/aarch64-linux-musl-cross/bin:$PATH"
+$ export LDFLAGS='-static'
+
+$ ./configure --host=aarch64-linux-musl --disable-docs --disable-binutils --disable-gas --disable-sim --disable-gprof --disable-inprocess-agent --disable-gdb --disable-gdbsupport --disable-readline --disable-opcodes --disable-libctf
+
+$ make -j$(nproc)
+$ file gdbserver/gdbserver
+gdbserver/gdbserver: ELF 64-bit LSB pie executable, ARM aarch64, version 1 (SYSV), static-pie linked, with debug_info, not stripped
+```
+3) Copy `gdbserver` under `initramfs/bin/`
+4) Add in `initramfs/setup`:
+```
+file /bin/gdbserver usr/initramfs/bin/gdbserver 755 0 0
+```
+5) On the device:
+``` console
+# start kbootd
+$ gdbserver /dev/ttyS0 /bin/kbootd
+
+# OR
+
+# attach to running kbootd
+$ gdbserver --attach /dev/ttyS0 KBOOTD_PID
+```
+6) On the host:
+``` console
+$ ./gcc-arm-10.3-2021.07-x86_64-aarch64-none-linux-gnu/bin/aarch64-none-linux-gnu-gdb \
+   -ex file ${KBOOT_PATH}/kbootd/build/kbootd \
+   -ex target remote /dev/ttyUSB0
+```
+
 ### Contributions
 
 `kbootd` coding style:
